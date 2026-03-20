@@ -1,0 +1,12 @@
+{
+  "name": "cipherhash",
+  "version": "1.0.0",
+  "description": "CipherHash - SHA-256 Hash Generator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
