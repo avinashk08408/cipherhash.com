@@ -1,0 +1,815 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#020b0f">
+  <meta name="description" content="CipherHash — Professional SHA-256 Hash Generator">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CipherHash">
+  <title>🔐 CipherHash</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #020b0f;
+      --surface: #041418;
+      --panel: #061d24;
+      --border: #0d4a5a;
+      --glow: #00ffe7;
+      --glow2: #00b8a9;
+      --accent: #ff003c;
+      --warn: #ffc300;
+      --text: #c8fff8;
+      --muted: #3a7a80;
+      --font-mono: 'Share Tech Mono', monospace;
+      --font-head: 'Orbitron', monospace;
+      --font-body: 'Rajdhani', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,231,0.015) 2px, rgba(0,255,231,0.015) 4px);
+      pointer-events: none; z-index: 999;
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: linear-gradient(rgba(0,255,231,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,231,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+    #matrix-canvas {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0.04; pointer-events: none; z-index: 0;
+    }
+
+    /* ── TOP NAV ── */
+    .topnav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(4,20,24,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 56px;
+    }
+    .nav-logo {
+      font-family: var(--font-head); font-size: 18px; font-weight: 900;
+      color: var(--glow); letter-spacing: 3px;
+      text-shadow: 0 0 12px rgba(0,255,231,0.4);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .nav-logo .logo-icon { font-size: 22px; filter: drop-shadow(0 0 6px rgba(0,255,231,0.5)); }
+    .nav-logo span { color: var(--accent); }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-status {
+      font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 1px; display: flex; align-items: center; gap: 6px;
+    }
+    .nav-led {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--glow); box-shadow: 0 0 6px var(--glow); animation: pulse 2s infinite;
+    }
+
+    /* ── MAIN WRAPPER ── */
+    .wrapper {
+      position: relative; z-index: 1;
+      max-width: 860px; margin: 0 auto; padding: 40px 24px 20px;
+    }
+    header { text-align: center; margin-bottom: 48px; }
+    .app-icon {
+      font-size: 64px; display: block; margin-bottom: 16px;
+      filter: drop-shadow(0 0 20px rgba(0,255,231,0.4));
+      animation: iconFloat 3s ease-in-out infinite;
+    }
+    @keyframes iconFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    h1 {
+      font-family: var(--font-head); font-size: clamp(28px, 5vw, 48px); font-weight: 900;
+      letter-spacing: 4px; color: var(--glow);
+      text-shadow: 0 0 20px rgba(0,255,231,0.5), 0 0 60px rgba(0,255,231,0.2);
+      line-height: 1.1; margin-bottom: 8px;
+    }
+    h1 span { color: var(--accent); }
+    .algo-badge {
+      display: inline-block; font-family: var(--font-mono); font-size: 12px;
+      color: var(--glow2); letter-spacing: 4px; border: 1px solid var(--border);
+      padding: 6px 20px; margin-top: 12px; background: rgba(0,255,231,0.04); text-transform: uppercase;
+    }
+
+    /* ── CORNER BOX ── */
+    .corner-box {
+      position: relative; border: 1px solid var(--border);
+      background: var(--surface); padding: 32px; margin-bottom: 20px;
+    }
+    .corner-box::before, .corner-box::after, .corner-box .c3, .corner-box .c4 {
+      content: ''; position: absolute; width: 14px; height: 14px;
+      border-color: var(--glow); border-style: solid;
+    }
+    .corner-box::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+    .corner-box::after  { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+    .corner-box .c3 { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+    .corner-box .c4 { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+    /* ── SECTION LABEL ── */
+    .section-label {
+      font-family: var(--font-mono); font-size: 10px; letter-spacing: 3px;
+      color: var(--glow2); text-transform: uppercase; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* ── INPUT ── */
+    .input-wrapper { display: flex; gap: 12px; align-items: stretch; }
+    .input-field {
+      flex: 1; background: var(--panel); border: 1px solid var(--border);
+      color: var(--text); font-family: var(--font-mono); font-size: 15px;
+      padding: 16px 20px; outline: none;
+      transition: border-color .2s, box-shadow .2s; caret-color: var(--glow);
+    }
+    .input-field::placeholder { color: var(--muted); }
+    .input-field:focus {
+      border-color: var(--glow2);
+      box-shadow: 0 0 0 1px var(--glow2), inset 0 0 20px rgba(0,255,231,0.04);
+    }
+
+    /* ── HASH BUTTON ── */
+    .hash-btn {
+      background: transparent; border: 1px solid var(--glow); color: var(--glow);
+      font-family: var(--font-head); font-size: 12px; font-weight: 700;
+      letter-spacing: 2px; padding: 0 28px; cursor: pointer; text-transform: uppercase;
+      position: relative; overflow: hidden;
+      transition: color .2s, background .2s, box-shadow .2s; white-space: nowrap;
+    }
+    .hash-btn::before {
+      content: ''; position: absolute; inset: 0; background: var(--glow);
+      transform: scaleX(0); transform-origin: left; transition: transform .25s ease; z-index: 0;
+    }
+    .hash-btn:hover::before { transform: scaleX(1); }
+    .hash-btn:hover { color: var(--bg); box-shadow: 0 0 20px rgba(0,255,231,0.4); }
+    .hash-btn span { position: relative; z-index: 1; }
+
+    /* ── INFO BAR ── */
+    .info-bar { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+    .info-chip {
+      font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .info-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+    .info-chip.active .dot { background: var(--glow); box-shadow: 0 0 6px var(--glow); }
+    #char-count { color: var(--glow2); }
+
+    /* ── RESULT ── */
+    #result-section { display: none; }
+    .result-box {
+      background: var(--panel); border: 1px solid var(--border);
+      padding: 20px 24px; position: relative; margin-bottom: 8px;
+    }
+    .result-label {
+      font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 2px; margin-bottom: 8px; text-transform: uppercase;
+    }
+    .hash-display {
+      font-family: var(--font-mono); font-size: clamp(11px, 2vw, 14px); color: var(--glow);
+      word-break: break-all; line-height: 1.7;
+      text-shadow: 0 0 8px rgba(0,255,231,0.3); letter-spacing: 1px;
+    }
+    .hash-display .chunk { transition: color .15s; }
+    .hash-display .chunk:hover { color: var(--warn); cursor: default; }
+    .copy-btn {
+      position: absolute; top: 16px; right: 16px; background: transparent;
+      border: 1px solid var(--border); color: var(--muted);
+      font-family: var(--font-mono); font-size: 11px; padding: 6px 14px;
+      cursor: pointer; letter-spacing: 1px; transition: all .2s;
+    }
+    .copy-btn:hover { border-color: var(--glow2); color: var(--glow2); }
+    .copy-btn.copied { border-color: var(--glow); color: var(--glow); }
+
+    /* ── META GRID ── */
+    .meta-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1px; background: var(--border); border: 1px solid var(--border); margin-bottom: 8px;
+    }
+    .meta-cell { background: var(--panel); padding: 14px 18px; }
+    .meta-cell .mk {
+      font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 2px; margin-bottom: 4px; text-transform: uppercase;
+    }
+    .meta-cell .mv { font-family: var(--font-mono); font-size: 13px; color: var(--text); }
+    .meta-cell .mv.ok { color: #00e676; }
+
+    /* ── HISTORY ── */
+    #history-section { margin-top: 32px; display: none; }
+    .history-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .clear-btn {
+      font-family: var(--font-mono); font-size: 11px; background: none;
+      border: 1px solid #3a2030; color: #a04060; padding: 5px 14px;
+      cursor: pointer; letter-spacing: 1px; transition: all .2s;
+    }
+    .clear-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-item {
+      background: var(--surface); border: 1px solid var(--border); padding: 14px 18px;
+      display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
+      cursor: pointer; transition: border-color .2s, background .2s;
+      position: relative; overflow: hidden;
+    }
+    .history-item::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px; background: var(--glow2); opacity: 0; transition: opacity .2s;
+    }
+    .history-item:hover { border-color: var(--glow2); background: var(--panel); }
+    .history-item:hover::before { opacity: 1; }
+    .hi-input {
+      font-family: var(--font-body); font-size: 13px; color: var(--text);
+      font-weight: 600; margin-bottom: 4px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .hi-hash {
+      font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .hi-time { font-family: var(--font-mono); font-size: 10px; color: var(--muted); white-space: nowrap; }
+
+    /* ── STATUS BAR ── */
+    .status-bar {
+      border-top: 1px solid var(--border); padding: 10px 0 0;
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 40px;
+    }
+    .status-item {
+      font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 1px; display: flex; align-items: center; gap: 6px;
+    }
+    .status-item .led {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--glow); box-shadow: 0 0 6px var(--glow); animation: pulse 2s infinite;
+    }
+
+    /* ── FOOTER ── */
+    footer { position: relative; z-index: 1; border-top: 1px solid var(--border); background: var(--surface); }
+    .footer-inner {
+      max-width: 860px; margin: 0 auto; padding: 28px 24px 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .footer-designers { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .fd-label { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 3px; }
+    .fd-names { display: flex; align-items: center; gap: 12px; }
+    .fd-name {
+      font-family: var(--font-head); font-size: 15px; font-weight: 700;
+      color: var(--glow); letter-spacing: 2px; text-shadow: 0 0 10px rgba(0,255,231,0.3);
+    }
+    .fd-sep { font-family: var(--font-mono); color: var(--accent); font-size: 14px; }
+    .footer-divider { width: 120px; height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); }
+    .footer-copy { font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 2px; text-align: center; }
+    .copy-symbol { color: var(--glow2); }
+    .copy-brand { font-family: var(--font-head); font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: 2px; }
+    .copy-brand span { color: var(--accent); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-up { animation: fadeUp .4s ease forwards; }
+    .pulse { animation: pulse 1.5s infinite; }
+
+    /* ══ INSTALL / LAUNCH MODAL ══ */
+    #pwa-modal-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 2000;
+      background: rgba(2, 11, 15, 0.88);
+      backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+      animation: fadeOverlay .3s ease;
+    }
+    #pwa-modal-overlay.visible { display: flex; }
+    @keyframes fadeOverlay { from { opacity: 0; } to { opacity: 1; } }
+
+    .pwa-modal {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      max-width: 480px; width: 90%;
+      padding: 40px 36px 36px;
+      animation: modalSlide .35s cubic-bezier(.22,.68,0,1.2);
+      text-align: center;
+    }
+    @keyframes modalSlide {
+      from { opacity: 0; transform: scale(.88) translateY(20px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .pwa-modal::before, .pwa-modal::after,
+    .pwa-modal .mc3, .pwa-modal .mc4 {
+      content: ''; position: absolute; width: 18px; height: 18px;
+      border-color: var(--glow); border-style: solid;
+    }
+    .pwa-modal::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+    .pwa-modal::after  { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+    .pwa-modal .mc3 { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+    .pwa-modal .mc4 { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+    .modal-icon {
+      font-size: 52px; display: block; margin-bottom: 16px;
+      filter: drop-shadow(0 0 16px rgba(0,255,231,0.5));
+      animation: iconFloat 3s ease-in-out infinite;
+    }
+    .modal-title {
+      font-family: var(--font-head); font-size: 20px; font-weight: 900;
+      letter-spacing: 3px; color: var(--glow);
+      text-shadow: 0 0 16px rgba(0,255,231,0.4);
+      margin-bottom: 8px;
+    }
+    .modal-title span { color: var(--accent); }
+    .modal-sub {
+      font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+      letter-spacing: 2px; margin-bottom: 32px; line-height: 1.7;
+    }
+    .modal-divider {
+      height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin-bottom: 28px;
+    }
+    .modal-hash-preview {
+      background: var(--panel); border: 1px solid var(--border);
+      padding: 12px 16px; margin-bottom: 28px; text-align: left;
+    }
+    .modal-hash-label {
+      font-family: var(--font-mono); font-size: 9px; color: var(--muted);
+      letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px;
+    }
+    .modal-hash-val {
+      font-family: var(--font-mono); font-size: 10px; color: var(--glow);
+      word-break: break-all; line-height: 1.6; opacity: 0.8;
+    }
+    .modal-prompt {
+      font-family: var(--font-body); font-size: 15px; font-weight: 600;
+      color: var(--text); letter-spacing: 1px; margin-bottom: 24px;
+    }
+    .modal-actions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .modal-btn {
+      position: relative; overflow: hidden;
+      font-family: var(--font-head); font-size: 12px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      padding: 16px 12px; cursor: pointer;
+      border: 1px solid; transition: color .2s, box-shadow .2s;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .modal-btn::before {
+      content: ''; position: absolute; inset: 0;
+      transform: scaleY(0); transform-origin: bottom;
+      transition: transform .25s ease; z-index: 0;
+    }
+    .modal-btn:hover::before { transform: scaleY(1); }
+    .modal-btn .btn-icon { font-size: 22px; position: relative; z-index: 1; }
+    .modal-btn .btn-label { position: relative; z-index: 1; }
+    .modal-btn .btn-sub {
+      position: relative; z-index: 1;
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px;
+      font-weight: 400; opacity: 0.7; text-transform: none;
+    }
+    #btn-install {
+      background: transparent; border-color: var(--accent); color: var(--accent);
+    }
+    #btn-install::before { background: var(--accent); }
+    #btn-install:hover { color: #fff; box-shadow: 0 0 24px rgba(255,0,60,0.4); }
+    #btn-install:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+    #btn-launch {
+      background: transparent; border-color: var(--glow); color: var(--glow);
+    }
+    #btn-launch::before { background: var(--glow); }
+    #btn-launch:hover { color: var(--bg); box-shadow: 0 0 24px rgba(0,255,231,0.4); }
+    .modal-close {
+      position: absolute; top: 12px; right: 16px;
+      background: none; border: none; color: var(--muted);
+      font-family: var(--font-mono); font-size: 18px; cursor: pointer;
+      line-height: 1; transition: color .2s;
+    }
+    .modal-close:hover { color: var(--accent); }
+    #nav-installed-badge {
+      display: none;
+      font-family: var(--font-mono); font-size: 10px;
+      color: #00e676; letter-spacing: 1px;
+      border: 1px solid #00e676; padding: 3px 10px;
+    }
+    .toast {
+      display: none;
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--panel); border: 1px solid var(--glow);
+      padding: 14px 28px; z-index: 3000;
+      font-family: var(--font-mono); font-size: 12px; color: var(--glow);
+      letter-spacing: 1px; box-shadow: 0 0 30px rgba(0,255,231,0.2);
+      text-align: center; white-space: nowrap;
+    }
+    .toast.show { display: block; animation: fadeUp .4s ease; }
+    .toast.error { border-color: var(--accent); color: var(--accent); }
+
+    @media (max-width: 500px) {
+      .topnav { padding: 0 14px; }
+      .wrapper { padding: 24px 14px 20px; }
+      h1 { font-size: 26px; }
+      .corner-box { padding: 20px; }
+      .pwa-modal { padding: 32px 20px 24px; }
+      .modal-actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="matrix-canvas"></canvas>
+
+<nav class="topnav">
+  <div class="nav-logo">
+    <span class="logo-icon">🔐</span> CIPHER<span>HASH</span>
+  </div>
+  <div class="nav-right">
+    <div class="nav-status">
+      <div class="nav-led"></div> SECURE
+    </div>
+    <span id="nav-installed-badge">✓ INSTALLED</span>
+  </div>
+</nav>
+
+<div id="pwa-modal-overlay">
+  <div class="pwa-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-text">
+    <div class="mc3"></div><div class="mc4"></div>
+    <button class="modal-close" onclick="closeModal()" aria-label="Dismiss">✕</button>
+    <span class="modal-icon">🔐</span>
+    <div class="modal-title" id="modal-title-text">CIPHER<span>HASH</span></div>
+    <div class="modal-sub">HASH GENERATED SUCCESSFULLY<br>CHOOSE YOUR NEXT ACTION</div>
+    <div class="modal-divider"></div>
+    <div class="modal-hash-preview">
+      <div class="modal-hash-label">SHA-256 Output</div>
+      <div class="modal-hash-val" id="modal-hash-val">—</div>
+    </div>
+    <div class="modal-prompt">What would you like to do?</div>
+    <div class="modal-actions">
+      <button class="modal-btn" id="btn-install" onclick="triggerInstall()">
+        <span class="btn-icon">⬇</span>
+        <span class="btn-sub">Add to Home Screen</span>
+      </button>
+      <button class="modal-btn" id="btn-launch" onclick="launchApp()">
+        <span class="btn-icon">🚀</span>
+        <span class="btn-label">LAUNCH</span>
+        <span class="btn-sub">Open Web App</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="wrapper">
+  <header>
+    <h1>CIPHER<span>HASH</span></h1>
+    <div class="algo-badge">&#9632; SHA-256 ALGORITHM &#9632;</div>
+  </header>
+
+  <div class="corner-box">
+    <div class="c3"></div><div class="c4"></div>
+    <div class="section-label">INPUT TERMINAL</div>
+    <div class="input-wrapper">
+      <input id="text-input" class="input-field" type="text"
+        placeholder="Enter plaintext to hash..." autocomplete="off" spellcheck="false" />
+    </div>
+    <button class="hash-btn" id="hash-btn" onclick="doHash()"
+      style="width:100%;margin-top:14px;padding:14px 0;">
+      <span>GENERATE HASH</span>
+    </button>
+    <div class="info-bar">
+      <div class="info-chip active">
+        <div class="dot pulse"></div> SYSTEM READY
+      </div>
+      <div class="info-chip">CHARS:&nbsp;<span id="char-count">0</span></div>
+      <div class="info-chip">ALGO: SHA-256</div>
+      <div class="info-chip">OUTPUT: 64 HEX / 256 BIT</div>
+    </div>
+  </div>
+
+  <div id="result-section">
+    <div class="corner-box fade-up" style="margin-bottom:20px">
+      <div class="c3"></div><div class="c4"></div>
+      <div class="section-label">HASH OUTPUT</div>
+      <div class="result-box">
+        <div class="result-label">SHA-256 Digest</div>
+        <div class="hash-display" id="hash-output"></div>
+        <button class="copy-btn" id="copy-btn" onclick="copyHash()">COPY</button>
+      </div>
+      <div class="meta-grid">
+        <div class="meta-cell"><div class="mk">Input Length</div><div class="mv" id="meta-len">—</div></div>
+        <div class="meta-cell"><div class="mk">Digest Length</div><div class="mv ok">256 bits</div></div>
+        <div class="meta-cell"><div class="mk">Hex Characters</div><div class="mv ok">64</div></div>
+        <div class="meta-cell"><div class="mk">Entropy</div><div class="mv" id="meta-entropy">—</div></div>
+        <div class="meta-cell"><div class="mk">Collision Risk</div><div class="mv ok">NEGLIGIBLE</div></div>
+        <div class="meta-cell"><div class="mk">Status</div><div class="mv ok" id="meta-status">VERIFIED</div></div>
+      </div>
+      <div class="info-bar" style="margin-top:0">
+        <div class="info-chip">
+          <div class="dot" style="background:var(--glow)"></div> HOVER ANY CHUNK TO HIGHLIGHT
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="history-section">
+    <div class="history-header">
+      <div class="section-label" style="flex:1;margin-bottom:0;">HASH HISTORY</div>
+      <button class="clear-btn" onclick="clearHistory()">CLEAR LOG</button>
+    </div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-item"><div class="led"></div> CONNECTION SECURE</div>
+    <div class="status-item">ALGORITHM: SHA-2 FAMILY</div>
+    <div class="status-item">NIST FIPS 180-4 COMPLIANT</div>
+    <div class="status-item" id="status-time"></div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-designers">
+      <span class="fd-label">DESIGNED &amp; DEVELOPED BY</span>
+      <div class="fd-names">
+        <span class="fd-name">Avinash K</span>
+        <span class="fd-sep">//</span>
+        <span class="fd-name">Barath Chand</span>
+      </div>
+    </div>
+    <div class="footer-divider"></div>
+    <div class="footer-copy">
+      <span class="copy-symbol">©</span> 2026 &nbsp;
+      <span class="copy-brand">CIPHER<span>HASH</span></span>
+      &nbsp;—&nbsp; All Rights Reserved
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ════ PWA — Inline Manifest + Service Worker ════ */
+function makeIcon(size) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#020b0f'; ctx.fillRect(0,0,size,size);
+  ctx.font = `${size*.62}px serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('🔐', size/2, size/2 + size*.03);
+  return c.toDataURL('image/png');
+}
+const icon192 = makeIcon(192);
+const icon512 = makeIcon(512);
+
+const fav = document.createElement('link'); fav.rel='icon'; fav.href=makeIcon(64);
+document.head.appendChild(fav);
+const apl = document.createElement('link'); apl.rel='apple-touch-icon'; apl.href=icon192;
+document.head.appendChild(apl);
+
+const manifest = {
+  name: "CipherHash", short_name: "CipherHash",
+  description: "Professional SHA-256 Hash Generator",
+  start_url: "./", display: "standalone",
+  background_color: "#020b0f", theme_color: "#020b0f",
+  orientation: "portrait-primary",
+  icons: [
+    { src: icon192, sizes: "192x192", type: "image/png", purpose: "any maskable" },
+    { src: icon512, sizes: "512x512", type: "image/png", purpose: "any maskable" }
+  ]
+};
+const mBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+const mLink = document.createElement('link');
+mLink.rel = 'manifest'; mLink.href = URL.createObjectURL(mBlob);
+document.head.appendChild(mLink);
+
+const swCode = `
+const CACHE='cipherhash-v1';
+self.addEventListener('install',e=>{self.skipWaiting();});
+self.addEventListener('activate',e=>{e.waitUntil(clients.claim());});
+self.addEventListener('fetch',e=>{
+  e.respondWith(
+    caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>
+      new Response('Offline — CipherHash still works for hashing!',{headers:{'Content-Type':'text/plain'}})
+    ))
+  );
+});`;
+const swBlob = new Blob([swCode], {type:'application/javascript'});
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+}
+
+/* ════ INSTALL PROMPT ════ */
+let deferredPrompt = null;
+let isInstalled = false;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('btn-install').disabled = false;
+});
+
+window.addEventListener('appinstalled', () => {
+  isInstalled = true;
+  deferredPrompt = null;
+  document.getElementById('nav-installed-badge').style.display = 'inline-block';
+  showToast('🔐 CipherHash installed! Launch from your home screen.', false);
+  closeModal();
+});
+
+if (window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true) {
+  isInstalled = true;
+  document.getElementById('nav-installed-badge').style.display = 'inline-block';
+}
+
+/* ════ MODAL ════ */
+function openModal(hash) {
+  document.getElementById('modal-hash-val').textContent = hash;
+  document.getElementById('pwa-modal-overlay').classList.add('visible');
+  const installBtn = document.getElementById('btn-install');
+  installBtn.disabled = (!deferredPrompt || isInstalled);
+  installBtn.title = isInstalled ? 'Already installed' : !deferredPrompt ? 'Install not available in this browser' : '';
+}
+
+function closeModal() {
+  document.getElementById('pwa-modal-overlay').classList.remove('visible');
+}
+
+async function triggerInstall() {
+  if (!deferredPrompt) {
+    showToast('⚠ Install not available. Try from Chrome on Android/Desktop.', true);
+    return;
+  }
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    isInstalled = true;
+    deferredPrompt = null;
+    document.getElementById('nav-installed-badge').style.display = 'inline-block';
+    showToast('🔐 CipherHash installed! Find it on your home screen.', false);
+    closeModal();
+  } else {
+    showToast('Installation cancelled.', true);
+  }
+}
+
+function launchApp() {
+  closeModal();
+  showToast('🚀 CipherHash is running! Hash away.', false);
+  document.getElementById('text-input').focus();
+}
+
+document.getElementById('pwa-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+/* ════ TOAST ════ */
+let toastTimer = null;
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = 'toast'; }, 4000);
+}
+
+/* ════ MATRIX RAIN ════ */
+(function(){
+  const c = document.getElementById('matrix-canvas');
+  const ctx = c.getContext('2d');
+  let W, H, cols, drops;
+  const chars = 'ABCDEF0123456789アイウエオカキクケコ01';
+  function init(){
+    W = c.width = window.innerWidth;
+    H = c.height = window.innerHeight;
+    cols = Math.floor(W/16);
+    drops = Array(cols).fill(1);
+  }
+  function draw(){
+    ctx.fillStyle = 'rgba(2,11,15,0.05)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#00ffe7'; ctx.font = '13px Share Tech Mono';
+    drops.forEach((y,i)=>{
+      const ch = chars[Math.floor(Math.random()*chars.length)];
+      ctx.fillText(ch, i*16, y*16);
+      if(y*16>H && Math.random()>.975) drops[i]=0;
+      drops[i]++;
+    });
+  }
+  init(); window.addEventListener('resize',init); setInterval(draw,50);
+})();
+
+/* ════ CLOCK ════ */
+function updateClock(){
+  const n = new Date();
+  document.getElementById('status-time').textContent =
+    n.toISOString().replace('T',' ').slice(0,19)+' UTC';
+}
+setInterval(updateClock,1000); updateClock();
+
+/* ════ CHAR COUNTER ════ */
+document.getElementById('text-input').addEventListener('input', function(){
+  document.getElementById('char-count').textContent = this.value.length;
+});
+document.getElementById('text-input').addEventListener('keydown', function(e){
+  if(e.key==='Enter') doHash();
+});
+
+/* ════ SHA-256 & HELPERS ════ */
+async function sha256(msg){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function entropy(str){
+  const freq={};
+  for(const c of str) freq[c]=(freq[c]||0)+1;
+  const len=str.length; let e=0;
+  for(const f of Object.values(freq)){ const p=f/len; e-=p*Math.log2(p); }
+  return (e*len).toFixed(1)+' bits';
+}
+function renderChunks(hash){
+  return hash.match(/.{1,8}/g).map(ch=>`<span class="chunk">${ch}</span>`).join(' ');
+}
+
+let lastHash = '';
+let history  = [];
+
+async function doHash(){
+  const input = document.getElementById('text-input').value;
+  if(!input.trim()) return;
+  const btn = document.getElementById('hash-btn');
+  btn.querySelector('span').textContent = 'COMPUTING...';
+
+  const hash = await sha256(input);
+  lastHash = hash;
+
+  const rs = document.getElementById('result-section');
+  rs.style.display = 'block';
+  rs.querySelector('.corner-box').classList.remove('fade-up');
+  void rs.querySelector('.corner-box').offsetWidth;
+  rs.querySelector('.corner-box').classList.add('fade-up');
+
+  document.getElementById('hash-output').innerHTML = renderChunks(hash);
+  document.getElementById('meta-len').textContent = input.length+' chars';
+  document.getElementById('meta-entropy').textContent = entropy(input);
+  document.getElementById('meta-status').textContent = 'VERIFIED ✓';
+
+  const now = new Date().toISOString().replace('T',' ').slice(0,19);
+  history.unshift({input, hash, time: now});
+  if(history.length>10) history.pop();
+  renderHistory();
+
+  btn.querySelector('span').textContent = 'GENERATE HASH';
+  document.getElementById('copy-btn').textContent = 'COPY';
+  document.getElementById('copy-btn').classList.remove('copied');
+
+  openModal(hash);
+}
+
+function copyHash(){
+  if(!lastHash) return;
+  navigator.clipboard.writeText(lastHash);
+  const btn = document.getElementById('copy-btn');
+  btn.textContent = 'COPIED!'; btn.classList.add('copied');
+}
+
+function renderHistory(){
+  const hs = document.getElementById('history-section');
+  const hl = document.getElementById('history-list');
+  if(!history.length){ hs.style.display='none'; return; }
+  hs.style.display='block';
+  hl.innerHTML = history.map((h,i)=>`
+    <div class="history-item fade-up" style="animation-delay:${i*.04}s" onclick="loadFromHistory(${i})">
+      <div>
+        <div class="hi-input">${escHtml(h.input)}</div>
+        <div class="hi-hash">${h.hash}</div>
+      </div>
+      <div class="hi-time">${h.time}</div>
+    </div>
+  `).join('');
+}
+
+function loadFromHistory(i){
+  const h = history[i];
+  document.getElementById('text-input').value = h.input;
+  document.getElementById('char-count').textContent = h.input.length;
+  doHash();
+}
+
+function clearHistory(){ history=[]; renderHistory(); }
+
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
